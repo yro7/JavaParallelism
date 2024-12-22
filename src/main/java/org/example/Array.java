@@ -14,6 +14,18 @@ public class Array {
         System.out.println();
     }
 
+    public static void printFirst(int[] array, int length){
+        if(length > array.length) {
+            print(array);
+            return;
+        }
+        System.out.println("Printing " + length + " first values of array " + array);
+        Arrays.stream(array)
+                .limit(length)
+                .forEach(i -> System.out.print(i + " "));
+        System.out.println();
+    }
+
     public static int[] random(int length, int bound){
         Random random = new Random();
         return IntStream.range(0, length)

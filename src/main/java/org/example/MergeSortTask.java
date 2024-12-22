@@ -15,13 +15,22 @@ class MergeSortTask extends SortingTask {
     MergeSortTask(int[] array) {
         super(array);
         this.start = 0;
-        this.end = array.length;
+        // Exclusive bound to avoid seg fault
+        this.end = array.length - 1;
         this.temp = new int[array.length];
     }
 
+    MergeSortTask(int arrayLength) {
+        super(Array.random(arrayLength));
+        this.start = 0;
+        // Exclusive bound to avoid seg fault
+        this.end = arrayLength - 1;
+        this.temp = new int[arrayLength];
+    }
+
+
     @Override
     public Void compute() {
-
         if (start < end) {
             int mid = start + (end - start) / 2;  // Avoid potential overflow
 
@@ -71,15 +80,15 @@ class MergeSortTask extends SortingTask {
 
     /**
      * A classic merge sort that does not use parallelism
-     * @param arr
      */
-    public static void mergeSortClassic(int[] arr) {
-        if (arr == null || arr.length <= 1) {
+    public void computeClassic() {
+
+        if (array == null || array.length <= 1) {
             return;
         }
 
-        int[] temp = new int[arr.length];
-        mergeSortHelper(arr, temp, 0, arr.length - 1);
+        int[] temp = new int[array.length];
+        mergeSortHelper(array, temp, 0, array.length - 1);
     }
 
     private static void mergeSortHelper(int[] arr, int[] temp, int left, int right) {
