@@ -1,38 +1,51 @@
 package org.example;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.ForkJoinPool;
-import java.util.function.Function;
-import java.util.stream.IntStream;
+import org.knowm.xchart.SwingWrapper;
+import org.knowm.xchart.XYChart;
+import org.knowm.xchart.XYChartBuilder;
+import org.knowm.xchart.style.Styler;
+
+import java.lang.invoke.SerializedLambda;
+import java.lang.reflect.Method;
+import java.util.*;
+import java.util.function.Consumer;
 
 public class Main {
+
+    /**
+     * How many times should the {@link Main#Time(Consumer, Object)} function loop before starting to measure the timings.
+     * Allows to warm up the JVM to account for its optimizations and have precise timings
+     */
+    public static final int WARMUP_RUNS = 10;
+    /**
+     * How many times the {@link Main#Time(Consumer, Object)} function should measure the timings to make an average.
+     **/
+
+    public static final int MEASUREMENT_RUNS = 15;
+
+    /**
+     * How many times the {@link Main#graphData(List, Consumer[])} function should invoke the {@link Main#TimesInRange(List, Consumer)}
+     * function before actually measuring the timings.
+     */
+    public static final int WARMUP_FUNCTION = 5;
+
     public static void main(String[] args) {
-     //   Time(FibonnaciTask::classic, 50);
-       // Time(n -> new ForkJoinPool().invoke(new FibonnaciTask(n)), 50);
 
-     //   Time(n -> new MergeSortTask(n).use(), 10_000_000);
-      //  Time(n -> new MergeSortTask(n).useClassic(), 10_000_000);
+        // graphData(0,40,1,FibonnaciTask::classic,FibonnaciTask.parallelism);
 
-        double diff = compare(n -> new MergeSortTask(n).use(),
-                        n -> new MergeSortTask(n).useClassic(),
-                1_000_000);
-        System.out.println("diff : " + diff);
-
-        double[] res = TimesInRange(n -> new MergeSortTask(n).useClassic(),100);
-        System.out.println(Arrays.toString(res));
+        graphData(1000,8_000,40,MergeSortTask.parallel,
+                MergeSortTask.classic);
 
     }
 
     /**
-     * Compares the time of execution between 2 functions living in the same space T -> R for a same input T.
+     * Compares the time of execution between 2 functions that accept the same input type T, for a same input T.
      * @param functionA
      * @param functionB
      * @param value
      * @return
      * @param <T>
-     * @param <R>
      */
-    public static <T,R> double compare(Function<T,R> functionA, Function<T,R> functionB, T value){
+    public static <T> double compare(Consumer<T> functionA, Consumer<T> functionB, T value){
         double timeA = Time(functionA, value);
         double timeB = Time(functionB, value);
         return timeB - timeA;
@@ -44,47 +57,109 @@ public class Main {
      * @param value
      * @return
      * @param <T>
-     * @param <R>
      */
-    public static <T,R> double Time(Function<T, R> function, T value){
-        double before = System.nanoTime();
-        function.apply(value);
-        double after = System.nanoTime();
-        return (after-before)/1000000000;
+    public static <T> double Time(Consumer<T> function, T value){
+
+        // Warm-up runs to account for JVM optimizations
+        for (int i = 0; i < WARMUP_RUNS; i++) {
+            function.accept(value);
+        }
+
+        // Actual measurements : run the function MEASUREMENT_RUNS times to get an average evaluation time.
+        double totalTime = 0;
+        for (int i = 0; i < MEASUREMENT_RUNS; i++) {
+            double before = System.nanoTime();
+            function.accept(value);
+            double after = System.nanoTime();
+            totalTime += (after - before);
+        }
+
+        return (totalTime/MEASUREMENT_RUNS)/1_000_000_000;
     }
 
+
     /**
-     * Get execution times for a Function Integer -> R applied for each value between 1 and n
+     * Get execution times for a Function Integer -> R applied for each value between a and b
      * @param function
      * @return
-     * @param <R>
      */
-    public static <R> double[] TimesInRange(Function<Integer,R> function, int n){
-        double[] res = new double[n];
-        IntStream.range(1,n)
-                .forEach(i -> res[i] = Time(function, i));
+    public static <T extends Comparable<T>> TreeMap<T,Double> TimesInRange(List<T> values, Consumer<T> function){
+        TreeMap<T,Double> res = new TreeMap<>();
+        double resi;
+        for(T value : values){
+            resi = Time(function,value);
+            res.put(value,resi);
+        }
         return res;
     }
 
+    public static void graphData(int a, int b, int step, Consumer<Integer>... functions){
+        List<Integer> values = new ArrayList<>();
+        for(int i = a; i < b; i += step){
+            values.add(i);
+        }
+        graphData(values, functions);
+    }
 
-    public <R> void graphTimes(Function<Integer,R> int a, int b, int pas){
-        double[] times = this.getTimeFromRange(a,b, pas);
-        int size = data.size();
-        double[] xData = new double[size];
-        double[] yData = new double[size];
-        final int[] i = {0};
-        data.forEach((integer, aLong) -> {
-            xData[i[0]] = integer;
-            yData[i[0]] = aLong;
-            i[0]++;
-        });
+    /**
+     * Generic data grapher for a list of input values extending Comparable<T></T>
+     * @param values
+     * @param functions
+     * @param <T>
+     */
+    public static <T extends Comparable<T>> void graphData(List<T> values, Consumer<T>... functions) {
+        // Each function has a List<T> of input values T : in the end we have a List<List<T>>
+        List<List<T>> xDataList = new ArrayList<>();
+        List<List<Double>> yDataList = new ArrayList<>();
+        for (Consumer<T> function : functions) {
+            TreeMap<T, Double> data = new TreeMap<>();
 
+            for(int i = 0; i < WARMUP_FUNCTION; i ++){
+                data = TimesInRange(values, function);
+            }
+
+            // Create arrays of the correct size
+            List<T> xData = new ArrayList<>();
+            List<Double> yData = new ArrayList<>();
+            // Fill arrays in order
+            for (Map.Entry<T, Double> entry : data.entrySet()) {
+                xData.add(entry.getKey());
+                yData.add(entry.getValue());
+            }
+
+            xDataList.add(xData);
+            yDataList.add(yData);
+
+
+        }
 
         // Create Chart
-        XYChart chart = QuickChart.getChart("Sample Chart", "n =", "Temps en ns", "y(x)", xData, yData);
+        XYChart chart = new XYChartBuilder()
+                .width(800)
+                .height(600)
+                .title("Performance Comparison")
+                .xAxisTitle("n =")
+                .yAxisTitle("Time (s)")
+                .build();
+
+        // Add series to chart
+        for (int i = 0; i < functions.length; i++) {
+            String name = "Function " + getFunctionName(functions[i]) + " " + i;
+            if(i == 0) name = "Parallel Version";
+            if(i == 1) name = "Classic Version";
+            chart.addSeries(name, xDataList.get(i), yDataList.get(i));
+        }
+
+        // Customize chart
+        chart.getStyler().setLegendPosition(Styler.LegendPosition.InsideNE);
+        chart.getStyler().setMarkerSize(8);
 
         // Show it
         new SwingWrapper(chart).displayChart();
+    }
+
+    public static <T> String getFunctionName(Consumer<T> function) {
+        return "";
     }
 
 

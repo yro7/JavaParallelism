@@ -1,8 +1,10 @@
 package org.example;
 
+import java.util.concurrent.RecursiveAction;
 import java.util.concurrent.RecursiveTask;
+import java.util.function.Function;
 
-public abstract class SortingTask extends RecursiveTask<Void> {
+public abstract class SortingTask extends RecursiveAction {
 
     public final int[] array;
 
@@ -11,25 +13,33 @@ public abstract class SortingTask extends RecursiveTask<Void> {
     }
 
     // Has to use a Void wrapper because each sorters extends RecursiveTask<Void> and has to return a Void
-    public abstract Void compute();
+    public abstract void compute();
     public abstract void computeClassic();
 
     public Void use(){
-        System.out.println("Array before sorting : " );
-        Array.printFirst(this.array, 10);
-        compute();
-        System.out.println("Array after sorting : " );
-        Array.printFirst(this.array, 10);
+        use(false);
         return null;
     }
 
-    public Void useClassic(){
-        System.out.println("Array before sorting : " );
-        Array.printFirst(this.array, 10);
-        computeClassic();
-        System.out.println("Array after sorting : " );
-        Array.printFirst(this.array, 10);
-        return null;
+    public void use(boolean debug){
+        if(debug) System.out.println("Array before sorting : " );
+        if(debug) Array.printFirst(this.array, 10);
+        compute();
+        if(debug) System.out.println("Array after sorting : " );
+        if(debug) Array.printFirst(this.array, 10);
     }
+
+    public void useClassic(boolean debug){
+        if(debug) System.out.println("Array before sorting : " );
+        if(debug) Array.printFirst(this.array, 10);
+        computeClassic();
+        if(debug) System.out.println("Array after sorting : " );
+        if(debug) Array.printFirst(this.array, 10);
+    }
+
+    public void useClassic(){
+        useClassic(false);
+    }
+
 
 }

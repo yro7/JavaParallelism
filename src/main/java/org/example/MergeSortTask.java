@@ -1,9 +1,16 @@
 package org.example;
 
+import java.util.function.Consumer;
+import java.util.function.Function;
+
 class MergeSortTask extends SortingTask {
     private final int start;
     private final int end;
     private final int[] temp;
+
+    public static final Consumer<Integer> parallel = n -> new MergeSortTask(n).use();
+    public static final Consumer<Integer> classic = n -> new MergeSortTask(n).useClassic();
+
 
     MergeSortTask(int[] array, int start, int end, int[] temp) {
         super(array);
@@ -21,7 +28,7 @@ class MergeSortTask extends SortingTask {
     }
 
     MergeSortTask(int arrayLength) {
-        super(Array.random(arrayLength));
+        super(Array.decreasing(arrayLength));
         this.start = 0;
         // Exclusive bound to avoid seg fault
         this.end = arrayLength - 1;
@@ -30,7 +37,7 @@ class MergeSortTask extends SortingTask {
 
 
     @Override
-    public Void compute() {
+    public void compute() {
         if (start < end) {
             int mid = start + (end - start) / 2;  // Avoid potential overflow
 
@@ -41,8 +48,6 @@ class MergeSortTask extends SortingTask {
             // Merge the sorted halves
             merge(array, temp, start, mid, end);
         }
-
-        return null;
     }
 
     private static void merge(int[] arr, int[] temp, int left, int mid, int right) {

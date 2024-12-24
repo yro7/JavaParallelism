@@ -33,16 +33,27 @@ public class Array {
                 .toArray();
     }
 
+    /**
+     *
+     * @param n the length of the array (also the first value)
+     * @return an array of integers of length n, where array[i] = n - i
+     */
+    public static int[] decreasing(int n){
+        return IntStream.range(0, n)
+                .map(i -> n-i)
+                .toArray();
+    }
+
     public static int[] random(int n){
         return random(n,(int) Math.pow(2,32) - 1);
     }
 
 
-        public static Long classic(int n){
-            if(n <= 1) return (long) n;
-            Long n1 = classic(n-1);
-            Long n2 = classic(n-2);
-            return n1 + n2;
-        }
+    public static Long classic(int n){
+        if(n <= 1) return (long) n;
+        Long n1 = classic(n-1);
+        Long n2 = classic(n-2);
+        return n1 + n2;
     }
+}
 

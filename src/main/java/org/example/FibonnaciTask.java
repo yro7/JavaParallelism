@@ -1,10 +1,13 @@
 package org.example;
 
 import java.util.concurrent.RecursiveTask;
+import java.util.function.Consumer;
 
 public class FibonnaciTask extends RecursiveTask<Long> {
 
     private final int n;
+
+    public static final Consumer<Integer> parallelism = n -> new FibonnaciTask(n).compute();
 
     FibonnaciTask(int n) {
         this.n = n;
