@@ -4,10 +4,13 @@ import org.knowm.xchart.XYChart;
 import org.knowm.xchart.XYChartBuilder;
 import org.knowm.xchart.style.Styler;
 
+import java.io.*;
 import java.lang.invoke.SerializedLambda;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class Main {
 
@@ -26,15 +29,16 @@ public class Main {
      * How many times the {@link Main#graphData(List, Consumer[])} function should invoke the {@link Main#TimesInRange(List, Consumer)}
      * function before actually measuring the timings.
      */
-    public static final int WARMUP_FUNCTION = 5;
+    public static final int WARMUP_FUNCTION = 1;
 
     public static void main(String[] args) {
 
         // graphData(0,40,1,FibonnaciTask::classic,FibonnaciTask.parallelism);
 
-        graphData(1000,8_000,40,MergeSortTask.parallel,
-                MergeSortTask.classic);
+        //graphData(1000,6_000,40,MergeSortTask.parallel,
+         //       MergeSortTask.classic);
 
+      //  graphData(100,150,1,MergeSortTask.classic);
     }
 
     /**
@@ -101,6 +105,10 @@ public class Main {
         graphData(values, functions);
     }
 
+    public static void graphData(int n, int numberOfTimes, Consumer<Integer>... functions){
+        graphData(new ArrayList<>(Collections.nCopies(numberOfTimes,n)), functions);
+    }
+
     /**
      * Generic data grapher for a list of input values extending Comparable<T></T>
      * @param values
@@ -133,6 +141,7 @@ public class Main {
 
         }
 
+
         // Create Chart
         XYChart chart = new XYChartBuilder()
                 .width(800)
@@ -145,8 +154,8 @@ public class Main {
         // Add series to chart
         for (int i = 0; i < functions.length; i++) {
             String name = "Function " + getFunctionName(functions[i]) + " " + i;
-            if(i == 0) name = "Parallel Version";
-            if(i == 1) name = "Classic Version";
+            if(i == 1) name = "Parallel Version";
+            if(i == 0) name = "Classic Version";
             chart.addSeries(name, xDataList.get(i), yDataList.get(i));
         }
 
@@ -162,5 +171,24 @@ public class Main {
         return "";
     }
 
+
+    public static <T extends Comparable<T>> void saveExecutionsTime(Consumer<T> function,List<T> inputs, String fileName){
+        TreeMap<T,Double> dataToSave = TimesInRange(inputs,function);
+         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(fileName))) {
+         oos.writeObject(dataToSave);
+         System.out.println("data " + fileName + " saved successfully!");
+         } catch (IOException e) {
+         throw new RuntimeException(e);
+         }
+
+    }
+
+    public static <T> TreeMap<T,Double> loadExecutionTimes(String fileName){
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(fileName))) {
+            return (TreeMap<T, Double>) ois.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
 }
