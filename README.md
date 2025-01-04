@@ -6,6 +6,8 @@ This project is essentially a sandbox where I experiment with various Java featu
 
 # Some Results
 
+All arrays are sorted in decreasing order (O(nlog(n) for a Merge Sort).
+
 ## Fork/Join performance overhead
 **graphData(1000,6_000,40,MergeSortTask.parallel, MergeSortTask.classic);** 
 

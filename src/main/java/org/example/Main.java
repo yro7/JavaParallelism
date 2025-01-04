@@ -23,22 +23,36 @@ public class Main {
      * How many times the {@link Main#Time(Consumer, Object)} function should measure the timings to make an average.
      **/
 
-    public static final int MEASUREMENT_RUNS = 15;
+    public static final int MEASUREMENT_RUNS = 20;
 
     /**
      * How many times the {@link Main#graphData(List, Consumer[])} function should invoke the {@link Main#TimesInRange(List, Consumer)}
      * function before actually measuring the timings.
      */
-    public static final int WARMUP_FUNCTION = 1;
+    public static final int WARMUP_FUNCTION = 10;
 
     public static void main(String[] args) {
 
-        // graphData(0,40,1,FibonnaciTask::classic,FibonnaciTask.parallelism);
+        //graphData(0,33,1,FibonnaciTask.parallelism,FibonnaciTask::classic);
+        List<Integer> inputs = getList(1000,20_000,40);
 
-        //graphData(1000,6_000,40,MergeSortTask.parallel,
-         //       MergeSortTask.classic);
 
-      //  graphData(100,150,1,MergeSortTask.classic);
+        saveExecutionsTime(MergeSortTask.parallel,inputs, "java-21-parallel");
+        saveExecutionsTime(MergeSortTask.classic,inputs, "java-21-classic");
+
+/**
+
+       List<TreeMap<Integer,Double>> executionsTimes = loadExecutionTimes(
+                "java-22-parallel",
+                "java-22-classic",
+                "java-23-parallel",
+                "java-23-classic"
+        );
+
+       graphData(executionsTimes);
+
+ **/
+
     }
 
     /**
@@ -98,49 +112,29 @@ public class Main {
     }
 
     public static void graphData(int a, int b, int step, Consumer<Integer>... functions){
+        graphData(getList(a,b,step), functions);
+    }
+
+    /**
+     * Return a list of integer ranging from a to b with step
+     * @param a
+     * @param b
+     * @param step
+     * @return
+     */
+    public static List<Integer> getList(int a, int b, int step){
         List<Integer> values = new ArrayList<>();
         for(int i = a; i < b; i += step){
             values.add(i);
         }
-        graphData(values, functions);
+        return values;
     }
 
     public static void graphData(int n, int numberOfTimes, Consumer<Integer>... functions){
         graphData(new ArrayList<>(Collections.nCopies(numberOfTimes,n)), functions);
     }
 
-    /**
-     * Generic data grapher for a list of input values extending Comparable<T></T>
-     * @param values
-     * @param functions
-     * @param <T>
-     */
-    public static <T extends Comparable<T>> void graphData(List<T> values, Consumer<T>... functions) {
-        // Each function has a List<T> of input values T : in the end we have a List<List<T>>
-        List<List<T>> xDataList = new ArrayList<>();
-        List<List<Double>> yDataList = new ArrayList<>();
-        for (Consumer<T> function : functions) {
-            TreeMap<T, Double> data = new TreeMap<>();
-
-            for(int i = 0; i < WARMUP_FUNCTION; i ++){
-                data = TimesInRange(values, function);
-            }
-
-            // Create arrays of the correct size
-            List<T> xData = new ArrayList<>();
-            List<Double> yData = new ArrayList<>();
-            // Fill arrays in order
-            for (Map.Entry<T, Double> entry : data.entrySet()) {
-                xData.add(entry.getKey());
-                yData.add(entry.getValue());
-            }
-
-            xDataList.add(xData);
-            yDataList.add(yData);
-
-
-        }
-
+    public static <T> void graphData(List<TreeMap<T,Double>> treeMapList){
 
         // Create Chart
         XYChart chart = new XYChartBuilder()
@@ -152,11 +146,17 @@ public class Main {
                 .build();
 
         // Add series to chart
-        for (int i = 0; i < functions.length; i++) {
-            String name = "Function " + getFunctionName(functions[i]) + " " + i;
-            if(i == 1) name = "Parallel Version";
-            if(i == 0) name = "Classic Version";
-            chart.addSeries(name, xDataList.get(i), yDataList.get(i));
+        int i = 0;
+        for (TreeMap<T,Double> tree : treeMapList) {
+            List<T> dataX = new ArrayList<>(tree.keySet());
+            List<Double> dataY = new ArrayList<>(tree.values());
+            String name = "Data " + i;
+            if(i == 0) name = "Java 22 Parallel Version";
+            if(i == 1) name = "Java 22 Classic";
+            if(i == 2) name = "Java 23 Parallel";
+            if(i == 3) name = "Java 23 Classic";
+            chart.addSeries(name, dataX, dataY);
+            i++;
         }
 
         // Customize chart
@@ -166,11 +166,30 @@ public class Main {
         // Show it
         new SwingWrapper(chart).displayChart();
     }
+    /**
+     * Generic data grapher for a list of input values extending Comparable<T></T>
+     * @param values
+     * @param functions
+     * @param <T>
+     */
+    public static <T extends Comparable<T>> void graphData(List<T> values, Consumer<T>... functions) {
+        // Each function has a List<T> of input values T : in the end we have a List<List<T>>
+        List<TreeMap<T,Double>> treeMapList = new ArrayList<>();
+        for (Consumer<T> function : functions) {
+            TreeMap<T, Double> data = new TreeMap<>();
+            for(int i = 0; i < WARMUP_FUNCTION; i ++){
+                data = TimesInRange(values, function);
+            }
+
+            treeMapList.add(data);
+        }
+
+        graphData(treeMapList);
+    }
 
     public static <T> String getFunctionName(Consumer<T> function) {
         return "";
     }
-
 
     public static <T extends Comparable<T>> void saveExecutionsTime(Consumer<T> function,List<T> inputs, String fileName){
         TreeMap<T,Double> dataToSave = TimesInRange(inputs,function);
@@ -189,6 +208,14 @@ public class Main {
         } catch (IOException | ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static <T> List<TreeMap<T,Double>> loadExecutionTimes(String... fileName){
+        List<TreeMap<T,Double>> res = new ArrayList<>();
+        for(String file : fileName){
+            res.add(loadExecutionTimes(file));
+        }
+        return res;
     }
 
 }
