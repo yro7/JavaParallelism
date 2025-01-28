@@ -18,40 +18,26 @@ public class Main {
      * How many times should the {@link Main#Time(Consumer, Object)} function loop before starting to measure the timings.
      * Allows to warm up the JVM to account for its optimizations and have precise timings
      */
-    public static final int WARMUP_RUNS = 10;
+    public static final int WARMUP_RUNS = 1;
     /**
      * How many times the {@link Main#Time(Consumer, Object)} function should measure the timings to make an average.
      **/
 
-    public static final int MEASUREMENT_RUNS = 20;
+    public static final int MEASUREMENT_RUNS = 1;
 
     /**
      * How many times the {@link Main#graphData(List, Consumer[])} function should invoke the {@link Main#TimesInRange(List, Consumer)}
      * function before actually measuring the timings.
      */
-    public static final int WARMUP_FUNCTION = 10;
+    public static final int WARMUP_FUNCTION = 1;
 
     public static void main(String[] args) {
 
         //graphData(0,33,1,FibonnaciTask.parallelism,FibonnaciTask::classic);
         List<Integer> inputs = getList(1000,20_000,40);
 
+        graphData(10000, 10001, 1, Eratosthene.eratosthene);
 
-        saveExecutionsTime(MergeSortTask.parallel,inputs, "java-21-parallel");
-        saveExecutionsTime(MergeSortTask.classic,inputs, "java-21-classic");
-
-/**
-
-       List<TreeMap<Integer,Double>> executionsTimes = loadExecutionTimes(
-                "java-22-parallel",
-                "java-22-classic",
-                "java-23-parallel",
-                "java-23-classic"
-        );
-
-       graphData(executionsTimes);
-
- **/
 
     }
 
